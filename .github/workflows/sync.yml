@@ -32,7 +32,7 @@ jobs:
                        "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=dexerblog" | jq -r .value)
           
           # Call your sync endpoint
-          curl -X HEAD \
+          curl -I \
                -H "Authorization: Bearer $TOKEN" \
                -H "Accept: application/json" \
                "https://your-domain.com/sync-repo"
