@@ -1,0 +1,6 @@
+## Staged Computation
+Staged computation is to stage and separate a program into sequential layers. Every stage is extended into its next staged by staged computation with types. Therefore we can concentrate expensive operations and reducible steps into an *earlier* stage, perform independent optimization and generate codes for the next stage. Actually staged computation is just like typed code generation. Unlike `eval` in JavaScript which is considered as the most dangerous function, modern staged computation formalized semantic analysis, ensuring soundness.
+
+The most popular subject in staged computation is Two-Level Type System, where we separate the program into *compile time* and *runtime* stages. It's commonly used in languages with path dependency, which preserves the expressiveness of dependent type system in its compile time and encourages to put codes with side effects to the runtime stage. Consequently, they place all *pure* parts into compile time, allowing static constant values take part in typing, which seems like creating another meta-language *above* other codes.
+
+Still in work

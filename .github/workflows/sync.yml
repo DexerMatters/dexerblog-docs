@@ -35,7 +35,7 @@ jobs:
           curl -I \
                -H "Authorization: Bearer $TOKEN" \
                -H "Accept: application/json" \
-               "https://api.dexermatte.rs/sync-repo"
+               "https://api.dexer.qzz.io/sync-repo"
         env:
           ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
           ACTIONS_ID_TOKEN_REQUEST_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
