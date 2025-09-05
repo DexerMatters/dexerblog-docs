@@ -1,7 +1,7 @@
 ## 1 Isomorphisms
 
-> **Definition**
-> A map $A \overset{f}{\longrightarrow} B$ is called an **isomorphism** or invertible map , if there exists a map $B \overset{g}{\longrightarrow} A$ that holds $f \circ g = 1_B$ and $g \circ f = 1_A$. We also say $A$ and $B$ are **isomorphic** if there is at least one isomorphism between them.
+> **Definition**  
+> A map $f: A \to B$ is called an **isomorphism** or invertible map , if there exists a map $g: B \to A$ that holds $f \circ g = 1_B$ and $g \circ f = 1_A$. We also say $A$ and $B$ are **isomorphic** if there is at least one isomorphism between them.
 
 We also call the $g$ we mention above the inverse map of $f$, denoted by $f^{-1}$.
 
@@ -38,8 +38,8 @@ We find they both have two solutions.
 In the previous chapter, we talk about determination and choice problems, while retractions and sections are just special cases where $h$ is an identity map (similar to the restriction we make in the previous example of choice problems).
 
 > **Definition**
-> - A **retraction** for $f$ is a map $B \overset{r}{\longrightarrow} A$ for which $r \circ f = 1_A$
-> - A **section** for $f$ is a map $B \overset{s}{\longrightarrow}A$ for which $f \circ s = 1_B$
+> - A **retraction** for $f$ is a map $r: B \to A$ for which $r \circ f = 1_A$
+> - A **section** for $f$ is a map $s: B \to A$ for which $f \circ s = 1_B$
 
 <center><img alt="cat" src="https://i.ibb.co/Y4tdvMVg/retraction-section-problem-drawio.png" width="75%" /></center>
 
@@ -48,8 +48,41 @@ The two figures above seem really confusing. the section problem looks exactly t
 To better understand this, we divide an identity map with $B$ into two maps $f$ and $g$ for which $g \circ f = 1_A$. We call the first half $f$ *a section for $g$* and the second half $g$ *a retraction for $f$*.
 
 $$
-A \overset{f}{\longrightarrow} B \overset{g}{\longrightarrow}A
+f: A \to B, \quad g: B \to A
 $$
 
 It's just like Doraemon's Time Wrap. With the wrap, a section is to convert paper($A$) into wood($B$) and a retraction is transforming back the wood($B$) to paper($A$).
 
+> **Proposition 1**  
+> If a map $f: A \to B$ has a section, then for any $T$ and any map $y: T \to B$, there exists a map $x: T \to A$ for which $f \circ x = y$.
+>
+>**Proof:**  
+> Propositions on maps are apt to be proved with *external diagrams*. According to the conditions we can draw the following graph:
+> <center><img alt="cat" src="https://i.ibb.co/5xMtxdCt/Proof1.png" width="38%" /></center>
+>
+> We let $s$ be the section for $f$. From the diagram, we can easily denote $x$ by $x = s \circ y$, then substituting $x$ into the conclusion:
+> $$
+> \begin{split}
+> f \circ x& = f \circ (s \circ y) \\
+&= (f \circ s) \circ y \\
+&= 1_B \circ y \\
+&= y
+> \end{split}
+> $$
+
+There is actually a concept implied by this proposition, called *surjective*. For example, if $f$ is said to be surjective, each element of its codomain is pointed to by at least one arrow from its domain. If the domain is all the mail trucks and the codomain is all the houses in a block, it is surjective that every house gets at least one piece of mail.
+
+Implied by the proposition, $f$ is actually surjective for maps from $T$. Why? In category theory, we can't just claim $f$ is surjective. Instead we may need a "test object" to test surjectivity of $f$. Let's check it out:
+
+> "For any $T$ and for any $y:T\to B$"
+
+This actually quantifies all possible maps that point to $B$, the codomain of $f$. If $f$ passes the test for every possible $T$, then $f$ is surjective
+
+> ", there exists a map $x: T \to A$ for which $f \circ x = y$"
+
+This is the "test". We can always find a map from $T$ to $A$ such that the diagram becomes commuted. We can prove $f$ is surjective by contradiction.  
+If $f$ is not surjective, then there exists some element $b \in B$ that is not in the image of $f$. But then, taking $T$ to be a one-element set and $y: T \to B$ to be the constant map sending the single element to $b$, we cannot find any $x: T \to A$ such that $f \circ x = y$. This is because no matter what $x$ we choose, $f \circ x$ will never hit the element $b$ (since $b$ is not in the image of $f$). This contradicts our assumption that $f$ has a section, which guarantees that such an $x$ always exists. Therefore, $f$ must be surjective.
+
+> A section $s$ for a map $f$ is often thought of as a "choice of representatives". For example if $A$ is the set of all US citizens and $B$ is the set of all congressional districts, then a map $f$ such as
+> $$ f : A \to B= residence $$
+> divides the people up into clusters, all of those residing in a given district $y$ constituting one cluster. If $s$ means the congressional representative choice, then the condition $f \circ s = 1_B$ means that the representative of district $y$ must reside in $y$. Clearly, there are theoretically a very large number of such choice maps $s$ unless there happens to be some district which is uninhabited, in which case there will be no such maps $s$, as follows from Proposition 1.
