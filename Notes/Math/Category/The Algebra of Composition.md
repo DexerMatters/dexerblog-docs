@@ -70,7 +70,7 @@ It's just like Doraemon's Time Wrap. With the wrap, a section is to convert pape
 > \end{split}
 > $$
 
-There is actually a concept implied by this proposition, called *surjective*. For example, if $f$ is said to be surjective, each element of its codomain is pointed to by at least one arrow from its domain. If the domain is all the mail trucks and the codomain is all the houses in a block, it is surjective that every house gets at least one piece of mail.
+There is actually a concept implied by this proposition, called **surjective**. For example, if $f$ is said to be surjective, each element of its codomain is pointed to by at least one arrow from its domain. If the domain is all the mail trucks and the codomain is all the houses in a block, it is surjective that every house gets at least one piece of mail.
 
 Implied by the proposition, $f$ is actually surjective for maps from $T$. Why? In category theory, we can't just claim $f$ is surjective. Instead we may need a "test object" to test surjectivity of $f$. Let's check it out:
 
@@ -82,7 +82,61 @@ This actually quantifies all possible maps that point to $B$, the codomain of $f
 
 This is the "test". We can always find a map from $T$ to $A$ such that the diagram becomes commuted. We can prove $f$ is surjective by contradiction.  
 If $f$ is not surjective, then there exists some element $b \in B$ that is not in the image of $f$. But then, taking $T$ to be a one-element set and $y: T \to B$ to be the constant map sending the single element to $b$, we cannot find any $x: T \to A$ such that $f \circ x = y$. This is because no matter what $x$ we choose, $f \circ x$ will never hit the element $b$ (since $b$ is not in the image of $f$). This contradicts our assumption that $f$ has a section, which guarantees that such an $x$ always exists. Therefore, $f$ must be surjective.
+<center><img alt="cat" src="https://i.ibb.co/39hPtX9B/proof-proposition1-drawio.png" width="80%" /></center>
 
 > A section $s$ for a map $f$ is often thought of as a "choice of representatives". For example if $A$ is the set of all US citizens and $B$ is the set of all congressional districts, then a map $f$ such as
 > $$ f : A \to B= residence $$
 > divides the people up into clusters, all of those residing in a given district $y$ constituting one cluster. If $s$ means the congressional representative choice, then the condition $f \circ s = 1_B$ means that the representative of district $y$ must reside in $y$. Clearly, there are theoretically a very large number of such choice maps $s$ unless there happens to be some district which is uninhabited, in which case there will be no such maps $s$, as follows from Proposition 1.
+
+Also there is a dual proposition about Proposition 1.
+
+> **Proposition 1\***  
+> If a map $f: A \to B$ has a retraction, then for any $T$ and any map $g: A \to T$, there exists a map $x: B \to T$ for which $t \circ f = g$.
+>
+>**Proof:**   
+> We can also draw the external diagram of this proposition below:
+> <center><img alt="cat" src="https://i.ibb.co/MkX2QpQ1/Proposition1-drawio.png" width="38%" /></center>
+>
+> We let $r$ be the retraction for $f$. From the diagram, we can easily denote $t$ by $t = g \circ r$, then substituting $t$ into the conclusion:
+> $$
+> \begin{split}
+> t \circ f& = (g \circ r) \circ f \\
+&= g \circ (r \circ f) \\
+&= g\circ 1_A \\
+&= g
+> \end{split}
+> $$
+
+There is another useful proposition about retractions:
+> **Proposition 2**  
+> If a map $f: A \to B$ has a retraction, then for any $T$ and for any pair of maps $x_1\:x_2 : T \to A$ from any set $T$ to $A$
+> $$ \text{if}\; f \circ x_1 = f \circ x_2 \; \text{then} \; x_1 = x_2$$
+> **Proof:**  
+> By our pro forma tactic, we first draw the external diagram:
+> <center><img alt="cat" src="https://i.ibb.co/Y4PCQdN6/Proprosition2-drawio.png" width="60%" /></center>
+> 
+> $$
+> \begin{split}
+&x_1 = 1_A \circ x_1 = (r \circ f) \circ x_1 = r \circ (f \circ x_1) \\
+\overset{f \circ x_1 = f \circ x_2}{\Longrightarrow}
+&r \circ (f \circ x_2) = (r \circ f) \circ x_2 = 1_A \circ x_2 = x_2
+> \end {split}
+> $$
+
+> **Definition**
+> We say any maps ($f$) that satisfy the conclusion of *Proposition 2* to be **injective for maps from $T$**. If $f$ is injective for maps from any $T$, we say $f$ to be **injective** or a **monomorphism**.  
+
+An injective map is a one-to-one map, which is all the elements of its codomain are pointed to by only one arrow from its domain. For example, A map from student identity to students numbers is injective for there is no student who has no identity number or multiple numbers. An injective map also implies the map to be surjective.
+
+Then why the proposition can mean $f$ is one-to-one? It's easy to recall the element-based standard definition of injective functions
+> A function f is **injective** if, for any two elements $a_1$ and $a_2$ in set $A$, if $f(a_1) = f(a_2)$, then it must be that $a_1 = a_2$
+
+Let's go back to our categorical definition. The key to understand it is still to introduce a test set $T$. Letting $T$ be a one-element set denoted by $\{\cdot\}$ and $x_1$ $x_2$ be a pair of constant maps which always produce $a_1$ and $a_2$ respectively. Then we have
+- $x_1(\cdot) = a_1$
+- $x_2(\cdot) = a_2$
+
+The special choice of $T$ and the pair of maps is just a way to pick an element.
+- $(f \circ x_1)(\cdot) = f(x_1(\cdot)) = f(a_1)$
+- $(f \circ x_2)(\cdot) = f(x_2(\cdot)) = f(a_2)$
+
+So "$f \circ x_1$" is the same as saying "$f(a_1) = f (a_2)$". Similarly, since the maps are just to pick an element from A, $x_1 = x_2$ just means they must pick the same element, whereas the same as saying $a_1 = a_2$.
