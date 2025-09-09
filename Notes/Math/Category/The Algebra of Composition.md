@@ -195,7 +195,7 @@ $$
 
 **Proof**: Let $f : A\to B$ and hence $r : B \to A$. Due to the condition, we have $r \circ f = 1_A$. The goal is to prove $f \circ r = 1_B$. Since $f^{-1} \circ f = 1_A$, then $f^{-1} \circ f = r \circ f$. Finally we have $r = f^{-1}$ which is sufficient for $f \circ r = 1_B$.
 
-> **Theorem _(Uniqueness of inverses)_**
+> **Theorem _(Uniqueness of inverses)_**  
 > If $f$ have both a section $s$ and a retraction $r$, then $r = s$
 >
 > **Proof:**  
