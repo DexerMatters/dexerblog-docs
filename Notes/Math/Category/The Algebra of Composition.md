@@ -34,7 +34,7 @@ When $g$ is defined as the figure on the left, it is surprised that we can find 
 
 We find they both have two solutions.
 
-### 2 Retractions, Sections and Idempotents
+### 1.2 Retractions, Sections and Idempotents
 In the previous chapter, we talk about determination and choice problems, while retractions and sections are just special cases where $h$ is an identity map (similar to the restriction we make in the previous example of choice problems).
 
 > **Definition**
@@ -194,3 +194,57 @@ $$
 > Taking $r$ to be a retraction of $f$, if $f$ is an isomorphism, then $f \circ r$ is an identity
 
 **Proof**: Let $f : A\to B$ and hence $r : B \to A$. Due to the condition, we have $r \circ f = 1_A$. The goal is to prove $f \circ r = 1_B$. Since $f^{-1} \circ f = 1_A$, then $f^{-1} \circ f = r \circ f$. Finally we have $r = f^{-1}$ which is sufficient for $f \circ r = 1_B$.
+
+> **Theorem _(Uniqueness of inverses)_**
+> If $f$ have both a section $s$ and a retraction $r$, then $r = s$
+>
+> **Proof:**  
+> From the proposition, we know that $f \circ s = 1_B$ and $r \circ f = 1_A$. Then we can construct $s$ from $r$ by applying an identity and extending it:
+$$
+r \circ 1_B = r \circ f \circ s = 1_A \circ s = s
+$$
+
+The theorem implies $f$ can only have one unique inverse $f^{-1}$ and the inverse is both a section and retraction of $f$. From this point, we can just redefine *Isomorphism* with sections and retractions.
+
+> **Definition**  
+> A map $f: A \to B$ is called an **isomorphism** or invertible map , if there exists a map $f^{-1}$ which is both a section and retraction for $f$.
+
+We can derive some useful lemmas from what we have proved.
+
+> If $f$ and $g$ are both isomorphisms, then $g \circ f$ is isomorphism too.
+
+**Proof:** Let $f : A\to B$, $g: B \to C$. The goal is to prove $g \circ f$ have both a retraction $r$ and a section $s$. The condition implies the following equations:
+
+$$
+\begin{split}
+1_A &= f^{-1} \circ f \quad \\
+1_B &= f \circ f^{-1} = g^{-1} \circ g \\
+1_C &= g \circ g^{-1}
+\end{split}
+$$
+
+Then we construct the retraction from $1_A$
+$$
+\begin{split}
+1_A &= f^{-1} \circ f \\
+&= f^{-1} \circ 1_B \circ f \\
+&= f^{-1} \circ (g^{-1} \circ g) \circ f \\
+&= (f^{-1} \circ g^{-1}) \circ (g \circ f) \\
+r &= f^{-1} \circ g^{-1}
+\end{split}
+$$
+Similarly, we construct the section from $1_C$
+
+$$
+\begin{split}
+1_C &= g \circ g^{-1} \\
+&= g \circ 1_B \circ g^{-1} \\
+&= g \circ (f \circ f^{-1}) \circ g^{-1} \\
+&= (g \circ f) \circ (f^{-1} \circ g^{-1}) \\
+s &= f^{-1} \circ g^{-1}
+\end{split}
+$$
+
+> $(g \circ f)^{-1} = f^{-1} \circ g^{-1}$
+
+**Proof:** Proved above.
