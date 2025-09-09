@@ -37,7 +37,7 @@ We find they both have two solutions.
 ### 1.2 Retractions, Sections and Idempotents
 In the previous chapter, we talk about determination and choice problems, while retractions and sections are just special cases where $h$ is an identity map (similar to the restriction we make in the previous example of choice problems).
 
-> **Definition**
+> **Definition**  
 > - A **retraction** for $f$ is a map $r: B \to A$ for which $r \circ f = 1_A$
 > - A **section** for $f$ is a map $s: B \to A$ for which $f \circ s = 1_B$
 
@@ -123,7 +123,7 @@ There is another useful proposition about retractions:
 > \end {split}
 > $$
 
-> **Definition**
+> **Definition**  
 > We say any maps ($f$) that satisfy the conclusion of *Proposition 2* to be **injective for maps from $T$**. If $f$ is injective for maps from any $T$, we say $f$ to be **injective** or a **monomorphism**.  
 
 An injective map is a one-to-one map, which is all the elements of its codomain are pointed to by only one arrow from its domain. For example, A map from student identity to students numbers is injective for there is no student who has no identity number or multiple numbers. An injective map also implies the map to be surjective.
@@ -150,7 +150,7 @@ Also, this can have the dual proposition:
 > **Proof:**  
 > Trivial.
 
-> **Definition**
+> **Definition**  
 > We say any map $f$ that satisfy "if $t_1 \circ f = t_2 \circ f$ then $t_1 = t_2$" for every $T$ to be **epimorphism**.
 
 Both monomorphism and epimorphism are "*cancellation properties*". Letting $r$ and $f$ be two maps while $r$ is a retraction of $f$ and $f$ is also a section for $r$  ($r \circ f = 1_A$). What a pair of sets $A$ and $B$ can hold the two maps mentioned? Actually we can roughly think $A$ is *smaller* than $B$. On this point we will talk more precisely below.
