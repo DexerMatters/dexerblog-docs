@@ -45,7 +45,7 @@ In the previous chapter, we talk about determination and choice problems, while 
 
 The two figures above seem really confusing. the section problem looks exactly the same as the retraction problem except for a 180 degree rotation. We can clarify this by letting the sets below be what we *focus*. From the figure on the left, elements of $A$ are sent to $B$ by $f$ and then go back to $A$ with $r$, which is equivalent to an identity map on $A$. From the one on the right, elements of $B$ are sent to $A$ by $s$ and then go back to $B$ with $f$, which is also equivalent to an identity map on $B$.
 
-To better understand this, we divide an identity map with $B$ into two maps $f$ and $g$ for which $g \circ f = 1_A$. We call the first half $f$ *a section for $g$* and the second half $g$ *a retraction for $f$*.
+To better understand this, we divide an identity map with $B$ into two maps $f$ and $g$ for which $g \circ f = 1_A$. We call the first half $f$ *a section for $g$* and the second half $g$ *a retraction of $f$*.
 
 $$
 f: A \to B, \quad g: B \to A
@@ -97,7 +97,7 @@ Also there is a dual proposition about Proposition 1.
 > We can also draw the external diagram of this proposition below:
 > <center><img alt="cat" src="https://i.ibb.co/MkX2QpQ1/Proposition1-drawio.png" width="38%" /></center>
 >
-> We let $r$ be the retraction for $f$. From the diagram, we can easily denote $t$ by $t = g \circ r$, then substituting $t$ into the conclusion:
+> We let $r$ be the retraction of $f$. From the diagram, we can easily denote $t$ by $t = g \circ r$, then substituting $t$ into the conclusion:
 > $$
 > \begin{split}
 > t \circ f& = (g \circ r) \circ f \\
@@ -113,7 +113,7 @@ There is another useful proposition about retractions:
 > $$ \text{if}\; f \circ x_1 = f \circ x_2 \; \text{then} \; x_1 = x_2$$
 > **Proof:**  
 > By our pro forma tactic, we first draw the external diagram:
-> <center><img alt="cat" src="https://i.ibb.co/Y4PCQdN6/Proprosition2-drawio.png" width="60%" /></center>
+> 
 > 
 > $$
 > \begin{split}
@@ -140,3 +140,57 @@ The special choice of $T$ and the pair of maps is just a way to pick an element.
 - $(f \circ x_2)(\cdot) = f(x_2(\cdot)) = f(a_2)$
 
 So "$f \circ x_1$" is the same as saying "$f(a_1) = f (a_2)$". Similarly, since the maps are just to pick an element from A, $x_1 = x_2$ just means they must pick the same element, whereas the same as saying $a_1 = a_2$.
+
+Also, this can have the dual proposition:
+
+> **Proposition 2\***  
+> If a map $f: A \to B$ has a retraction, then for any $T$ and for any pair of maps $t_1\:t_2 : B \to T$ from any set $B$ to $T$
+> $$ \text{if}\; t_1 \circ f = t_2 \circ f \; \text{then} \; t_1 = t_2$$
+>
+> **Proof:**  
+> Trivial.
+
+> **Definition**
+> We say any map $f$ that satisfy "if $t_1 \circ f = t_2 \circ f$ then $t_1 = t_2$" for every $T$ to be **epimorphism**.
+
+Both monomorphism and epimorphism are "*cancellation properties*". Letting $r$ and $f$ be two maps while $r$ is a retraction of $f$ and $f$ is also a section for $r$  ($r \circ f = 1_A$). What a pair of sets $A$ and $B$ can hold the two maps mentioned? Actually we can roughly think $A$ is *smaller* than $B$. On this point we will talk more precisely below.
+
+> **Proposition 3**  
+> If $f: A\to B$ has a retraction and $g:B\to C$ also has a retraction, then $g \circ f : A \to C$ has a retraction.
+> **Proof**  
+> This can be seen as transitivity of "having a retraction".  
+> The condition can be interpreted as 
+> $$ 
+r_1 \circ f = 1_A \\
+r_2 \circ g = 1_B
+$$
+> The goal is to prove there exists a $r$ for which $r \circ (g \circ f) = 1_A$
+> <center><img alt="cat" src="https://i.ibb.co/KcV8RM6y/Proposition3-proof-drawio.png" width="50%" /></center>
+>
+> $$
+\begin{split}
+r \circ (g \circ f) &= (r_1 \circ r_2) \circ (g \circ f) \\
+&= r_1 \circ (r_2 \circ g) \circ f = r_1 \circ 1_B \circ f \\
+&= r_1 \circ f = 1_A
+\end{split}
+$$
+
+It also has a dual proposition on the transitivity of "having a section".
+
+> **Definition**  
+> An endomap (whose domain and codomain are the same set) $e$ is called idempotent if $e \circ e = e$
+
+We can actually conclude the following lemmas from the proposition
+
+> Taking $r$ to be a retraction of $f$, then $f \circ r$ is an *idempotent*
+
+**Proof**: Letting $e = f \circ r$, the goal is to prove $e \circ e = e$. We can extend this to $f \circ r \circ f \circ r$.
+
+$$
+e \circ e = f \circ (r \circ f) \circ r = f \circ 1_A \circ r = f \circ r = e
+$$
+
+
+> Taking $r$ to be a retraction of $f$, if $f$ is an isomorphism, then $f \circ r$ is an identity
+
+**Proof**: Let $f : A\to B$ and hence $r : B \to A$. Due to the condition, we have $r \circ f = 1_A$. The goal is to prove $f \circ r = 1_B$. Since $f^{-1} \circ f = 1_A$, then $f^{-1} \circ f = r \circ f$. Finally we have $r = f^{-1}$ which is sufficient for $f \circ r = 1_B$.
