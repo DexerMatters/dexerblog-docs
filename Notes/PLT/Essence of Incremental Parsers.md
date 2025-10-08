@@ -82,4 +82,53 @@ You can find that there is a recursion in the rule `factor`. However, this sort 
 
 A counterexample can be the first form in this session. In `add`, the first subrule the parser meet is not a terminal but `expr`. We can't know the exact steps or length of the rule `expr`. So the parser gets stuck there and never halts. Another case is the second form, in which we swap `add` and `number` to make the parser terminate. There is `number` as the first rule in `expr` so `expr` can terminate as long as a number is met, and thus `add` can terminate too.
 
-We call it **left recursion** when the leftmost subrule in a rule is recursive (There is the rule itself in its leftmost subrule). The left recursion can terminate only when the leftmost subrule has no left recursion. In short, while tracing every leftmost rules in a grammar, we must find a terminal, otherwise parser unable to halt.
+We call it **left recursion** when the leftmost subrule in a rule is recursive (There is the rule itself in its leftmost subrule).Left recursion can terminate only when the leftmost subrule has no left recursion. In short, while tracing every leftmost rules in a grammar, we must find a terminal at most, otherwise parser unable to halt.
+
+Usually, early termination indicates an intuitive mistake made in grammar design and there is usually a straight forward solution to solve it. In essence, it is a problem caused by rules with ambiguous choices, which can be solved by adjusting the order of the choices, making the most general one the first. Moreover, it can be avoided when you design a parser which prioritizes non-terminal choices and prevents halting early.
+
+
+### A Checker for Left Recursion
+
+In this article, all codes are presented in Haskell for conciseness and correctness, including grammar notations.
+
+```haskell
+data Grammar = Grammar [(String, Rule)]
+data Rule
+  = Prod [Rule]
+  | Ref String
+  | Terminal
+```
+
+We don't need to distinguish sequences and choices in this scenario, thus using `Prod` standing for both. Terminals are atomic rules that consume characters and stop the parser immediately, which is also presented as `Terminal` for all cases, Therefore, we write codes according to the first grammar we design.
+
+```Haskell
+grammar1 :: Grammar
+grammar1 =
+  Grammar
+    [ ("expr", Prod [Ref "add", Ref "number"]),
+      ("add", Prod [Ref "expr", Terminal, Ref "expr"]),
+      ("number", Terminal)
+    ]
+```
+
+Insight for this checker is a special depth-first traverse which only accesses the leftmost node. This checker is applied to each rule in a grammar and show if a rule reference is pointing to the same name of the rule that the traverse starts at.
+
+```haskell
+checkLeftRecursion :: Grammar -> [(String, Rule)]
+checkLeftRecursion ctx = filter (uncurry (isLeftRecursive ctx)) (unGrammar ctx)
+
+isLeftRecursive :: Grammar -> String -> Rule -> Bool
+isLeftRecursive ctx name rule = case rule of
+  Prod (leftmost : _) -> isLeftRecursive ctx name leftmost
+  Ref refName | refName /= name -> case lookup refName (unGrammar ctx) of
+    Nothing -> False
+    Just refRule -> isLeftRecursive ctx name refRule
+  Ref refName | refName == name -> True
+  _ -> False
+```
+
+## Ambiguity Problem
+
+Early termination is caused by either ambiguity in grammar or errors raised by a parser. Ambiguity produced by rules with choices is a rather difficult problem. It requires the program to analyze the exact intersection (ambiguity area) between rules. However, we can do it in a heuristic way.
+
+First, we know that rules are indistinguishable if they have the same name. However, this is trivial intuitively. Then, we know that structurally equivalent rules always produce the same result. But this is trivial like ones of the same name. Actually all the equivalences between rules are trivial because the parser computes the identical texts and produces the same structure with the rules. Ambiguity happens when a subrule is more general than another one in a rule with choices. The parser has to decide which rule should be applied first, and it is early stopped as the more specific one is matched first rather than the general one. In our second grammar form, `add` is more general than `number` (`add` covers all the situations that `number` expects). So when the `number` is matched in the first place, `add` with its remaining subrules is neglected.
