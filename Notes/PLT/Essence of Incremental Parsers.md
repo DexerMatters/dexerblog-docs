@@ -84,8 +84,6 @@ A counterexample can be the first form in this session. In `add`, the first subr
 
 We call it **left recursion** when the leftmost subrule in a rule is recursive (There is the rule itself in its leftmost subrule).Left recursion can terminate only when the leftmost subrule has no left recursion. In short, while tracing every leftmost rules in a grammar, we must find a terminal at most, otherwise parser unable to halt.
 
-Usually, early termination indicates an intuitive mistake made in grammar design and there is usually a straight forward solution to solve it. In essence, it is a problem caused by rules with ambiguous choices, which can be solved by adjusting the order of the choices, making the most general one the first. Moreover, it can be avoided when you design a parser which prioritizes non-terminal choices and prevents halting early.
-
 
 ### A Checker for Left Recursion
 
@@ -127,8 +125,14 @@ isLeftRecursive ctx name rule = case rule of
   _ -> False
 ```
 
-## Ambiguity Problem
+### Solve Early Termination
 
-Early termination is caused by either ambiguity in grammar or errors raised by a parser. Ambiguity produced by rules with choices is a rather difficult problem. It requires the program to analyze the exact intersection (ambiguity area) between rules. However, we can do it in a heuristic way.
+Early termination happens in some step of parsing when two choices (subrules in a choice notation) can both be satisfied with the input while the one first applied consumes less characters than another one. This causes the parser to stop at the first one and abandons remaining characters even though they are valid.
 
-First, we know that rules are indistinguishable if they have the same name. However, this is trivial intuitively. Then, we know that structurally equivalent rules always produce the same result. But this is trivial like ones of the same name. Actually all the equivalences between rules are trivial because the parser computes the identical texts and produces the same structure with the rules. Ambiguity happens when a subrule is more general than another one in a rule with choices. The parser has to decide which rule should be applied first, and it is early stopped as the more specific one is matched first rather than the general one. In our second grammar form, `add` is more general than `number` (`add` covers all the situations that `number` expects). So when the `number` is matched in the first place, `add` with its remaining subrules is neglected.
+One solution is done by adjusting the order of two rules, making the rule that consumes more the first. This is the most preferred way and accustoms grammar designers to care more about viability. Is early termination a bug to our parser? No. It is just an expected or unexpected result that designers contribute. Alternatively, by combine end-of-input rule with the first rule into a sequence, the parser checks whether end of input is met after finished the first rule. It autonomously falls back to the second one if the end is unmet. And moreover, we can make choices always evaluated (paralleled, even concurrently) and compare length of the text consumed by each choice...
+
+There are a plenty of candidates to perfectly solve this problem. Some parser libraries also use *control flow combinator* to acknowledge the exact parsing logic of the grammar. For example, a `choice` combinator $A \;or\; B$ is similar to choice notations we used before, but there is no fall back on input texts. For example, let $A$ be a sequence $\text{number} \; '.'$ and $B$ be a terminal $'*'$. The input text "42*" is valid because when "\*" failed to satisfy $'.'$ the text does not fall back to the state when $A$ is not applied but remains "\*" (the state that "42" is consumed). $A$ fails and leaves "*" for $B$ and finally $B$ is satisfied and ends the parsing. A `try` combinator $try \: A$ controls the parser to recover the consumed text if $A$ fails. Then we can know that $(try \; A)\;or\;B$ is equivalent to $A\;|\;B$. This hands over the mental burden of falling back to designers, letting them to decide whether to use $try$. 
+
+Here we introduce precedence to solve this. This can also automatically eliminate endless left recursions.
+
+## Precedence and Normalization
