@@ -109,20 +109,31 @@ grammar1 =
     ]
 ```
 
-Insight for this checker is a special depth-first traverse which only accesses the leftmost node. This checker is applied to each rule in a grammar and show if a rule reference is pointing to the same name of the rule that the traverse starts at.
+Insight for this checker is a special depth-first traverse which only accesses the leftmost node (leftmost depth-first traverse). This checker checks a rule to show if a rule reference is visited before and stops immediately when a terminal is met.
+
+> In the following sessions, terms like "leftmost $A$" and "$A$ is on the leftmost" mean another $A$ is found inside $A$ with leftmost depth-first traverse.
+> For example, the rule 
+> $$ 
+\begin{split}
+\text{t} &::= \text{'hello'} \; \text{s}\\ 
+\text{s} &::= (\text{t} \; | \; \text{'world'}) 
+\end{split}
+$$
+> the latter `t` is not on the leftmost even though it is "leftmost" in `s` because the terminal `'hello'` exists.
+
 
 ```haskell
-checkLeftRecursion :: Grammar -> [(String, Rule)]
-checkLeftRecursion ctx = filter (uncurry (isLeftRecursive ctx)) (unGrammar ctx)
-
-isLeftRecursive :: Grammar -> String -> Rule -> Bool
-isLeftRecursive ctx name rule = case rule of
-  Prod (leftmost : _) -> isLeftRecursive ctx name leftmost
-  Ref refName | refName /= name -> case lookup refName (unGrammar ctx) of
-    Nothing -> False
-    Just refRule -> isLeftRecursive ctx name refRule
-  Ref refName | refName == name -> True
-  _ -> False
+leftRecursions :: Grammar -> String -> String
+leftRecursions (Grammar rules) start = go [start] (fromJust (lookup start rules))
+  where
+    go visited (Ref r)
+      | r `elem` visited = r
+      | otherwise = case lookup r rules of
+          Just rule -> go (r : visited) rule
+          Nothing -> []
+    go _ (Prod (Terminal : _)) = []
+    go visited (Prod (leftmost : _)) = go visited leftmost
+    go _ _ = []
 ```
 
 ### Solve Early Termination
@@ -135,4 +146,52 @@ There are a plenty of candidates to perfectly solve this problem. Some parser li
 
 Here we introduce precedence to solve this. This can also automatically eliminate endless left recursions.
 
-## Precedence and Normalization
+## Reparation and Normalization
+
+$$
+\begin{split}
+\text{expr} &::= \text{add} \: | \: \text{number} \\
+\text{number} &::= \text{\color{green}{/[0-9]+/}} \\
+\text{add} &::= \text{expr} \; \text{\color{green}{'+'}} \; \text{expr}
+\end{split}
+$$
+
+Back to our first grammar, a malformed grammar with an endless left recursion, is there any smarter way to avoid parser being stuck? Ideally, when `add` is matched, `expr` is applied and it will first choose `number` instead of `add` to avoid recursion. With this idea, choices are not selected from left to right any more. Instead, we can do something to break the loop by instructing which choice is entered first.
+
+> How about left recursion raised by sequences rather than choices? Can you solve this? Unfortunately, the parser will never have any idea about what you want to do if you write a left recursive sequence. (/_-)
+
+It is preferably noted that the premise of breaking a loop is finding another way out. The breaking or branching can only happen at choices. We call it **reparable loop** for a loop brought by left recursion with relevant choices. Relevant choices are ones that participate in the loop. If we swap `add` and `number` in `expr`, the choice will not be relevant because the leftmost one is not left recursive.
+
+<center><img src="https://i.ibb.co/KcGSkrBW/break-left-recursion-drawio.png" alt="break-left-recursion-drawio" border="0" width="40%" /></center>
+
+### A Transparent Approach
+
+All the work is to let the first reference `expr` in `add` exclude the choice `add` which raises the recursion. We can just write $\text{expr}' ::= \text{expr}$ for `expr` excluding `add` and then substitute the first `expr` with `expr'`.
+
+$$
+\begin{split}
+\text{expr} &::= \text{add} \: | \: \text{number} \\
+\text{expr}' &::= \text{number} \\
+\text{number} &::= \text{\color{green}{/[0-9]+/}} \\
+\text{add} &::= \text{expr}' \; \text{\color{green}{'+'}} \; \text{expr}
+\end{split}
+$$
+
+If you inline `expr'` in `add`, it is surprising to find the form exactly the same as the third one we talk above ("you find a proper way to deal with the termination problem by simply changing the last rule to $\text{add} ::= \text{number} \; \text{\color{green}{'+'}} \; \text{expr}$."). The approach is transparent to the parser because we don't need the parser to know the operation is already done. It is entirely a grammar-level reparation.
+
+### An Online Approach
+
+Another approach is to introduce another notation $!A$. It tells the parser to exclude the current rule for the leftmost occurrence.
+
+
+$$
+\begin{split}
+\text{expr} &::= \text{add} \: | \: \text{number} \\
+\text{number} &::= \text{\color{green}{/[0-9]+/}} \\
+\text{add} &::= ! \;\text{expr} \; \text{\color{green}{'+'}} \; \text{expr}
+\end{split}
+$$
+
+When a parser enters `add`, `!A` tells it to ignore the occurrence of the leftmost `add` in $A$.
+
+The benefit from this approach is to minimize the changes to the original structure and helps the parser to escape the loop spontaneously. This makes it possible to integrate the left recursion checker with a parser.
