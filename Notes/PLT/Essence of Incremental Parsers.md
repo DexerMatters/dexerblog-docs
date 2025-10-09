@@ -20,178 +20,118 @@ For convenience, lexer rules are colored with green and `expr` is always the ent
 - `add` is matched. It is a sequence of multiple subrules. Now try the leftmost one `expr`.
 - `expr` is matched. ...
 
-
-You can easily notice that the grammar is malformed as it brings infinite steps of parsing. To fix this, we can just change the order of the choices to $\text{number} \: | \: \text{add}$. 
-
-- `expr` is matched. Instead of the previous choice `add`, let's apply `number`
-- `number` is matched and the parsing terminates
-
-Even though it doesn't cause an endless loop, the parser ends earlier than expected. We can conclude that your arbitrary BNF terms can produce the following results if you mind the time to have a second look.
-1. **Early termination** There is still a remaining text which is matched but unable to be parsed.
-2. **No termination** The parser is stuck among some steps and can never find a terminal rule.
-3. **Good termination** All the matched characters are parsed and abide by the grammar rules.
-
-If you are a skilled grammar designer, you write rules and avoid the left recursion subconsciously. You know that addition, in common sense, is *left-associative*, which means addition prefers to prioritize its left hand expression. For example, the term "1 + 2 + 3 + 4" can be rewritten as "((1 + 2) + 3) + 4". You can note that the leftmost term is always a terminal (number). Congratulations, you find a proper way to deal with the termination problem by simply changing the last rule to $\text{add} ::= \text{number} \; \text{\color{green}{'+'}} \; \text{expr}$. 
-
-- `expr` is matched. It has two possible choices `add` and `number`. Now try to apply `add`.
-- `add` is matched. It is a sequence. Let's match `number` first, then `+` and `expr`.
-- `number` is matched. `1` is consumed and `+ 1` is left.
-- `+` is matched and consumed and `1` is left.
-- `expr` is matched. Now try to apply `add`. But there is no `+` left in the remaining text, fail back to `number`.
-- `number` is matched and consumed. End of input is met and no error raised.
-
-However, if you are proficient enough and you know the cost of recursion in a program, you will probably to choose *Extended Backus–Naur form*(EBNF) to write grammars. EBNF mainly extends BNF with two additional notations, namely option and repetition, written as `[]` and `{}` respectively. This can help you avoid recursion with a more deterministic way and reduce complexity. Finally, we get this:
-
-$$
-\begin{split}
-\text{expr} &::= \text{number} \; \{\text{\color{green}{'+'}} \; \text{number}\} \\
-\text{number} &::= \text{\color{green}{/[0-9]+/}}
-\end{split}
-$$
-
-> Wait! This is not equivalent to the previous form. For example, the final abstract tree with the previous rules is like
-> ``` 
-> expr
-> | add
-> | | number
-> | | '+'
-> | | expr
-> | | | number
-> ```
-> But with the current solution, it should be like
-> ``` 
-> expr
-> | number
-> | '+'
-> | number
-> ```
-> Umm. Don't be so eager about pointing them out. We will talk about trivia in parser design.
-
-This method actually hands over associativity to the higher level but it does make a beautiful and pruned tree. With this approach, there are no recursion, associativity, termination problems any more. Now let's extend our ideas to a complete grammar for arithmetic expressions.
-
-$$
-\begin{split}
-\text{expr} &::= \text{mul} \; \{\text{\color{green}{'*'}} \; \text{mul}\} \\
-\text{mul} &::= \text{factor} \; \{\text{\color{green}{'+'}} \; \text{factor}\} \\
-\text{factor} &::= \text{number} \; | \; \text{\color{green}{'('}} \; \text{expr} \; \text{\color{green}{')'}} \\
-\text{number} &::= \text{\color{green}{/[0-9]+/}}
-\end{split}
-$$
-
-You can find that there is a recursion in the rule `factor`. However, this sort of recursion can be proved halting. Loosely speaking, since a terminal `'('` is on the left of `expr`, the parser must read one left parenthesis before reaching `expr`. Terminals are terms with fixed sizes that always terminate and there can not be infinite left parentheses in any text. Therefore, the recursion can terminate.
-
-A counterexample can be the first form in this session. In `add`, the first subrule the parser meet is not a terminal but `expr`. We can't know the exact steps or length of the rule `expr`. So the parser gets stuck there and never halts. Another case is the second form, in which we swap `add` and `number` to make the parser terminate. There is `number` as the first rule in `expr` so `expr` can terminate as long as a number is met, and thus `add` can terminate too.
-
-We call it **left recursion** when the leftmost subrule in a rule is recursive (There is the rule itself in its leftmost subrule).Left recursion can terminate only when the leftmost subrule has no left recursion. In short, while tracing every leftmost rules in a grammar, we must find a terminal at most, otherwise parser unable to halt.
-
-
-### A Checker for Left Recursion
-
-In this article, all codes are presented in Haskell for conciseness and correctness, including grammar notations.
-
-```haskell
-data Grammar = Grammar [(String, Rule)]
-data Rule
-  = Prod [Rule]
-  | Ref String
-  | Terminal
-```
-
-We don't need to distinguish sequences and choices in this scenario, thus using `Prod` standing for both. Terminals are atomic rules that consume characters and stop the parser immediately, which is also presented as `Terminal` for all cases, Therefore, we write codes according to the first grammar we design.
-
-```Haskell
-grammar1 :: Grammar
-grammar1 =
-  Grammar
-    [ ("expr", Prod [Ref "add", Ref "number"]),
-      ("add", Prod [Ref "expr", Terminal, Ref "expr"]),
-      ("number", Terminal)
-    ]
-```
-
-Insight for this checker is a special depth-first traverse which only accesses the leftmost node (leftmost depth-first traverse). This checker checks a rule to show if a rule reference is visited before and stops immediately when a terminal is met.
-
-> In the following sessions, terms like "leftmost $A$" and "$A$ is on the leftmost" mean another $A$ is found inside $A$ with leftmost depth-first traverse.
-> For example, the rule 
-> $$ 
-\begin{split}
-\text{t} &::= \text{'hello'} \; \text{s}\\ 
-\text{s} &::= (\text{t} \; | \; \text{'world'}) 
-\end{split}
-$$
-> the latter `t` is not on the leftmost even though it is "leftmost" in `s` because the terminal `'hello'` exists.
-
-
-```haskell
-leftRecursions :: Grammar -> String -> String
-leftRecursions (Grammar rules) start = go [start] (fromJust (lookup start rules))
-  where
-    go visited (Ref r)
-      | r `elem` visited = r
-      | otherwise = case lookup r rules of
-          Just rule -> go (r : visited) rule
-          Nothing -> []
-    go _ (Prod (Terminal : _)) = []
-    go visited (Prod (leftmost : _)) = go visited leftmost
-    go _ _ = []
-```
-
-### Solve Early Termination
-
-Early termination happens in some step of parsing when two choices (subrules in a choice notation) can both be satisfied with the input while the one first applied consumes less characters than another one. This causes the parser to stop at the first one and abandons remaining characters even though they are valid.
-
-One solution is done by adjusting the order of two rules, making the rule that consumes more the first. This is the most preferred way and accustoms grammar designers to care more about viability. Is early termination a bug to our parser? No. It is just an expected or unexpected result that designers contribute. Alternatively, by combine end-of-input rule with the first rule into a sequence, the parser checks whether end of input is met after finished the first rule. It autonomously falls back to the second one if the end is unmet. And moreover, we can make choices always evaluated (paralleled, even concurrently) and compare length of the text consumed by each choice...
-
-There are a plenty of candidates to perfectly solve this problem. Some parser libraries also use *control flow combinator* to acknowledge the exact parsing logic of the grammar. For example, a `choice` combinator $A \;or\; B$ is similar to choice notations we used before, but there is no fall back on input texts. For example, let $A$ be a sequence $\text{number} \; '.'$ and $B$ be a terminal $'*'$. The input text "42*" is valid because when "\*" failed to satisfy $'.'$ the text does not fall back to the state when $A$ is not applied but remains "\*" (the state that "42" is consumed). $A$ fails and leaves "*" for $B$ and finally $B$ is satisfied and ends the parsing. A `try` combinator $try \: A$ controls the parser to recover the consumed text if $A$ fails. Then we can know that $(try \; A)\;or\;B$ is equivalent to $A\;|\;B$. This hands over the mental burden of falling back to designers, letting them to decide whether to use $try$. 
-
-Here we introduce precedence to solve this. This can also automatically eliminate endless left recursions.
-
-## Reparation and Normalization
+You can surely find your grammar form an endless loop which makes the parser stuck and never gives a result. If you are not a fresh learner, you know that `add` is **right-associative**. That is the expression "1 + 2 + 3 + 4" can always be rewritten as "((1 + 1) + 1) + 1". And you notice that the left hand of the operator is always a number. Now we can confidently present the final repaired grammar: 
 
 $$
 \begin{split}
 \text{expr} &::= \text{add} \: | \: \text{number} \\
 \text{number} &::= \text{\color{green}{/[0-9]+/}} \\
-\text{add} &::= \text{expr} \; \text{\color{green}{'+'}} \; \text{expr}
+\text{add} &::= \text{expr} \; \text{\color{green}{'+'}} \; \text{number}
 \end{split}
 $$
 
-Back to our first grammar, a malformed grammar with an endless left recursion, is there any smarter way to avoid parser being stuck? Ideally, when `add` is matched, `expr` is applied and it will first choose `number` instead of `add` to avoid recursion. With this idea, choices are not selected from left to right any more. Instead, we can do something to break the loop by instructing which choice is entered first.
+Wait. There is still `expr` on the left hand. Since the parser is from left to right, it will still become stuck between `add` and `expr`, right? It seems so. However, it can terminate well in fact, because there is the terminal `number` on the right hand like a gatekeeper. "From left to right" is simply the direction in which input is consumed. 
 
-> How about left recursion raised by sequences rather than choices? Can you solve this? Unfortunately, the parser will never have any idea about what you want to do if you write a left recursive sequence. (/_-)
+### Left Recursion
 
-It is preferably noted that the premise of breaking a loop is finding another way out. The breaking or branching can only happen at choices. We call it **reparable loop** for a loop brought by left recursion with relevant choices. Relevant choices are ones that participate in the loop. If we swap `add` and `number` in `expr`, the choice will not be relevant because the leftmost one is not left recursive.
+We call our parser that operates "from left to right" a **naive recursive-descent parser** and call **left recursion** to a loop where a naive recursive-descent parser gets stuck. Moreover, we also call **terminals** or **tokens** to atomic rules that stop the parser immediately.
 
-<center><img src="https://i.ibb.co/KcGSkrBW/break-left-recursion-drawio.png" alt="break-left-recursion-drawio" border="0" width="40%" /></center>
+How can we know that a rule reference is left-recursive? This is actually really simple and takes $O(n)$ time complexity where $n$ is depth of the recursion. It is essentially a leftmost depth-first traverse.
+1. Initialize a list for the visited nodes
+2. Visiting the rule reference named $l$. Mark it as visited and let the referenced rule be $r$ if the first time, or return $l$ and end if already visited once.
+3. Checking the rule $r$:
+    - Case 1 - A terminal: Return an empty string.
+    - Case 2 - A sequence: Restart Step 3 where $r$ equals to the leftmost rule in the sequence
+    - Case 3 - A choice: Restart Step 3 where $r$ equals to the leftmost rule in the choice.
+    - Case 4 - A reference: Restart Step 2 where $l$ equals to the name of the reference.
 
-### A Transparent Approach
+We can apply the algorithm to every single named rules in a grammar and get a list of left-recursive rules. Letting $A$ be an arbitrary left recursive rule, it holds the following useful properties:
 
-All the work is to let the first reference `expr` in `add` exclude the choice `add` which raises the recursion. We can just write $\text{expr}' ::= \text{expr}$ for `expr` excluding `add` and then substitute the first `expr` with `expr'`.
+- For any rule $B$, $A \: | \: B$ is left-recursive.
+- For any rule $B$, $A \; B$ is left-recursive.
+
+There must be a terminal for each left recursion
+
+
+
+### Insight 1: Refine the Grammar
+By swapping `expr` and `number` besides `'+'`, we turn the original left recursion to a right one that allows the parser takes straight forward steps without specification. 
 
 $$
 \begin{split}
-\text{expr} &::= \text{add} \: | \: \text{number} \\
-\text{expr}' &::= \text{number} \\
-\text{number} &::= \text{\color{green}{/[0-9]+/}} \\
-\text{add} &::= \text{expr}' \; \text{\color{green}{'+'}} \; \text{expr}
+\text{add} &::= \text{number} \; \text{\color{green}{'+'}} \; \text{expr}
 \end{split}
 $$
 
-If you inline `expr'` in `add`, it is surprising to find the form exactly the same as the third one we talk above ("you find a proper way to deal with the termination problem by simply changing the last rule to $\text{add} ::= \text{number} \; \text{\color{green}{'+'}} \; \text{expr}$."). The approach is transparent to the parser because we don't need the parser to know the operation is already done. It is entirely a grammar-level reparation.
+For this time, when the parser enters `add`, it is no longer trapped in a loop. We test "1 + 1" with this approach.
 
-### An Online Approach
+1. `expr` is matched. It has two possible options `add` and `number`. Now try to apply `add`.
+2. `add` is matched. It is a sequence of multiple subrules. Now try the first one `number`.
+3. `number` is matched and consumed. Now try the second one `+`
+4. `+` is matched and consumed. Now try the last one `expr`
+5. `expr` is matched. Now try the first choice `add`
+6. `number` is matched and consumed. `+` fails (unexpected end of input), thus falling back to the second choice `number` in Step 5
+7. `number` is matched and consumed. End of input is met. Finish.
 
-Another approach is to introduce another notation $!A$. It tells the parser to exclude the current rule for the leftmost occurrence.
+We find this can solve the left recursion problem. But it has semantic conflicts with the initial left recursive grammar we have designed. This time `+` behaves like `1 + (2 + (3 + 4))`, a left-associative operator. Expressions are folded from right instead of our initial semantics (That is, it is always the rightmost expression to be evaluated first). Does it really matter about left or right associativity? Number arranged by addition is a group which holds associativity ($(a + b) + c = a + (b + c)$). So this approach is valid for addition. In contrast, number arranged by subtraction has no such axiom. $(a - b) - c$ is definitely different from $a - ( b - c)$. 
 
+Another way to refine the grammar is to use **Extended Backus-Naur Form** (EBNF) to eliminate the left recursion. "1 + 2 + 3 + 4" can be seen as a repetitive pattern `number '+'` and a terminal 'number'. EBNF introduces repetition to BNF so we can easily rewrite `expr` into
 
 $$
 \begin{split}
-\text{expr} &::= \text{add} \: | \: \text{number} \\
-\text{number} &::= \text{\color{green}{/[0-9]+/}} \\
-\text{add} &::= ! \;\text{expr} \; \text{\color{green}{'+'}} \; \text{expr}
+\text{expr} &::= \{ \text{number} \; \text{\color{green}{'+'}} \} \; \text{number}
 \end{split}
 $$
 
-When a parser enters `add`, `!A` tells it to ignore the occurrence of the leftmost `add` in $A$.
+It looks really elegant with conciseness, and yet also shows the different semantics from the initial idea. A node for addition is a sequence instead of a binary tree. The associativity is also eliminated with this approach, entrusting some stage after the parser to evaluate it with orders. However, it is appreciated to indicate the sufficient semantics in a grammar and stay transparent to any other sessions afterward.
 
-The benefit from this approach is to minimize the changes to the original structure and helps the parser to escape the loop spontaneously. This makes it possible to integrate the left recursion checker with a parser.
+### Insight 2: Use Precedence Levels
+
+From the EBNF way talked in the last session, we can notice some ideas about designing a left-recursive-descent parser. The way introduces repetition to eliminate the recursion.
+
+
+#### Precedence
+
+Second, we need to know **precedence**. precedence level (or simply, level) specifies which part of a rule is prior to the other part on parsing. Level can be relative, there can be a *lower* or *higher* subrule in a sequence. For example, the rule `add` requires higher level on its left hand and lower one on its right to guarantee right-associativity.
+
+#### Index Levels
+
+There is a rule defined as $R ::= A \: | \: B \: | \: C$. $A$ has the highest level in $R$'s scope because it is first evaluated, $B$ follows and $C$ has the lowest. We denote $\overset{n}{A}$ to indicate the level where $n$ is a natural number and $A$ is an arbitrary rule. Then $R ::= \overset{2}A \: | \: \overset{1}B \: | \: \overset{0}C$. This denotation is trivial and simply for specification. Then we denote $A:m$ non-trivially to drop options whose level is higher than $m$ in $A$, where $m$ is a natural number. For example, $R:0 = \overset{0}C$,  $R:1 = \overset{1}B \: | \: \overset{0}C$ and $R:2 = R = \overset{2}A \: | \: \overset{1}B \: | \: \overset{0}C$ Then `add` be written like this:
+$$
+\begin{split}
+\text{expr} &::= \overset{1}{\text{add}} \: | \: \overset{0}{\text{number}} \\
+\text{add} &::= \text{expr} : 1 \; \text{\color{green}{'+'}} \; \text{expr}:0
+\end{split}
+$$
+
+The form distinctively indicates "the rule `add` requires higher level on its left hand and lower one on its right to guarantee right-associativity". Let's extend the grammar for arithmetic expressions.
+
+
+> Non-choice rules are indexed with 0 as whole.
+> Intuitively, $R:m = R$ where $m$ is the largest among all indices in $R$ since it does not drop anything.
+
+$$
+\begin{align*}
+\text{expr} &::= \;\;\overset{2}{(\text{add} \: | \: \text{sub})} \: \\
+&\qquad | \: \overset{1}{(\text{mul} \: | \: \text{div})} \: \\
+&\qquad | \: \overset{0}{(\text{number}  \: | \: \text{\color{green}{'('}} \;\text{expr} \; \text{\color{green}{')'}})} \\
+\text{mul} &::= \text{expr} : 1 \; \text{\color{green}{'*'}} \; \text{expr}:0 \\
+\text{div} &::= \text{expr} : 1 \; \text{\color{green}{'/'}} \; \text{expr}:0 \\
+\text{add} &::= \text{expr} \; \text{\color{green}{'+'}} \; \text{expr}:1 \\
+\text{sub} &::= \text{expr} \; \text{\color{green}{'-'}} \; \text{expr}:1 \\
+\end{align*}
+$$
+
+We specify `add` and `sub` at the level 2 (highest), `mul` and `div` at 1, and `number` and parenthesized expression at 0 (lowest).
+
+
+### Solve it!
+
+Right recursions are intuitive because the final abstract tree is built from top to bottom. In the example where we let $\text{add} ::= \text{number} \; \text{\color{green}{'+'}} \; \text{expr}$, when the parser enters the rule, a parent node "Add" is formed with a number as its left children. The following step is to parse with the rule `expr` and get the result as the right children. The binary tree "Add" extends itself from top to bottom with all its right branches stretching to the leaf. 
+
+Left recursions are on the contrary. In the example where we let $\text{add} ::= \text{expr} \; \text{\color{green}{'+'}} \; \text{number}$, the parser has to firstly produce the node "Add" as the starting point with a number as right children. Then the node is used to become the left node produced by the second step. The binary tree "Add" extends itself from bottom to top with all its left branches stretching to the root.
+<center>
+<img src="https://i.ibb.co/q3GLY9zt/rnl-drawio.png" width="50%" alt="rnl-drawio" border="0" />
+</center>
+
+First of all. We have to know the leaf of the tree expected to generate. Let's take the rule $\text{add} ::= \text{expr} \; \text{\color{green}{'+'}} \; \text{number}$ for example. The rule intuitively acknowledges us `number` is the "leaf rule". Then execute the parser with $\text{number} \; \text{\color{green}{'+'}} \; \text{number}$ once to get the bottommost node `Add(1, 1)`. Finally repeat the parser with $\text{\color{green}{'+'}} \; \text{number}$ until end of input or errors, and for each time a new `Add` node is created and its left child is the `Add` created at the last time. By accumulating the nodes, a left-recursive tree is built.
