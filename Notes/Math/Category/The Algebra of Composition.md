@@ -248,3 +248,6 @@ $$
 > $(g \circ f)^{-1} = f^{-1} \circ g^{-1}$
 
 **Proof:** Proved above.
+
+We also can a map **automorphism** if it is an isomorphism while also an endomap such as $f:A \to A$. We are used to denote $Aut(A)$ for the set of all automorphisms of $A$ and similarly $Isom(A, B)$ for the set of all isomorphisms between $A$ and $B$. We can know intuitively $Aut(A)$ is never empty for any $A$ because $1_A$ can always be found which is also an automorphism.
+
