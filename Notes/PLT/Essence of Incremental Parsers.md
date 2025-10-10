@@ -9,7 +9,7 @@ If you are a fresh learner on compilers, you may write your own BNF terms like b
 
 $$
 \begin{split}
-\text{expr} &::= \text{add} \: | \: \text{number} \\
+\text{expr} &::= \text{add} \mid \text{number} \\
 \text{number} &::= \text{\color{green}{/[0-9]+/}} \\
 \text{add} &::= \text{expr} \; \text{\color{green}{'+'}} \; \text{expr}
 \end{split}
@@ -24,7 +24,7 @@ You can surely find your grammar form an endless loop which makes the parser stu
 
 $$
 \begin{split}
-\text{expr} &::= \text{add} \: | \: \text{number} \\
+\text{expr} &::= \text{add} \mid \text{number} \\
 \text{number} &::= \text{\color{green}{/[0-9]+/}} \\
 \text{add} &::= \text{expr} \; \text{\color{green}{'+'}} \; \text{number}
 \end{split}
@@ -47,7 +47,7 @@ How can we know that a rule reference is left-recursive? This is actually really
 
 We can apply the algorithm to every single named rules in a grammar and get a list of left-recursive rules. Letting $A$ be an arbitrary left recursive rule, it holds the following useful properties:
 
-- For any rule $B$, $A \: | \: B$ is left-recursive.
+- For any rule $B$, $A \mid B$ is left-recursive.
 - For any rule $B$, $A \; B$ is left-recursive.
 
 There must be a terminal for each left recursion
@@ -87,7 +87,7 @@ It looks really elegant with conciseness, and yet also shows the different seman
 
 ### Insight 2: Use Precedence Levels
 
-From the EBNF way talked in the last session, we can notice some ideas about designing a left-recursive-descent parser. The way introduces repetition to eliminate the recursion.
+From the EBNF way talked in the last session, we can notice some ideas about designing a left-recursive-descent parser. The way introduces repetition to eliminate the recursion. But what if there are two different left-recursive rules and we have to prioritize one over another one (e.t., addition over multiplication)? An explicit precedence is now required to solve the ambiguity.
 
 
 #### Precedence
@@ -96,10 +96,10 @@ Second, we need to know **precedence**. precedence level (or simply, level) spec
 
 #### Index Levels
 
-There is a rule defined as $R ::= A \: | \: B \: | \: C$. $A$ has the highest level in $R$'s scope because it is first evaluated, $B$ follows and $C$ has the lowest. We denote $\overset{n}{A}$ to indicate the level where $n$ is a natural number and $A$ is an arbitrary rule. Then $R ::= \overset{2}A \: | \: \overset{1}B \: | \: \overset{0}C$. This denotation is trivial and simply for specification. Then we denote $A:m$ non-trivially to drop options whose level is higher than $m$ in $A$, where $m$ is a natural number. For example, $R:0 = \overset{0}C$,  $R:1 = \overset{1}B \: | \: \overset{0}C$ and $R:2 = R = \overset{2}A \: | \: \overset{1}B \: | \: \overset{0}C$ Then `add` be written like this:
+There is a rule defined as $R ::= A \mid B \mid C$. $A$ has the highest level in $R$'s scope because it is first evaluated, $B$ follows and $C$ has the lowest. We denote $\overset{n}{A}$ to indicate the level where $n$ is a natural number and $A$ is an arbitrary rule. Then $R ::= \overset{2}A \mid \overset{1}B \mid \overset{0}C$. This denotation is trivial and simply for specification. Then we denote $A:m$ non-trivially to drop options whose level is higher than $m$ in $A$, where $m$ is a natural number. For example, $R:0 = \overset{0}C$,  $R:1 = \overset{1}B \mid \overset{0}C$ and $R:2 = R = \overset{2}A \mid \overset{1}B \mid \overset{0}C$ Then `add` be written like this:
 $$
 \begin{split}
-\text{expr} &::= \overset{1}{\text{add}} \: | \: \overset{0}{\text{number}} \\
+\text{expr} &::= \overset{1}{\text{add}} \mid \overset{0}{\text{number}} \\
 \text{add} &::= \text{expr} : 1 \; \text{\color{green}{'+'}} \; \text{expr}:0
 \end{split}
 $$
@@ -112,9 +112,9 @@ The form distinctively indicates "the rule `add` requires higher level on its le
 
 $$
 \begin{align*}
-\text{expr} &::= \;\;\overset{2}{(\text{add} \: | \: \text{sub})} \: \\
-&\qquad | \: \overset{1}{(\text{mul} \: | \: \text{div})} \: \\
-&\qquad | \: \overset{0}{(\text{number}  \: | \: \text{\color{green}{'('}} \;\text{expr} \; \text{\color{green}{')'}})} \\
+\text{expr} &::= \;\;\overset{2}{(\text{add} \mid \text{sub})} \: \\
+&\qquad | \: \overset{1}{(\text{mul} \mid \text{div})} \: \\
+&\qquad | \: \overset{0}{(\text{number}  \mid \text{\color{green}{'('}} \;\text{expr} \; \text{\color{green}{')'}})} \\
 \text{mul} &::= \text{expr} : 1 \; \text{\color{green}{'*'}} \; \text{expr}:0 \\
 \text{div} &::= \text{expr} : 1 \; \text{\color{green}{'/'}} \; \text{expr}:0 \\
 \text{add} &::= \text{expr} \; \text{\color{green}{'+'}} \; \text{expr}:1 \\
@@ -125,13 +125,21 @@ $$
 We specify `add` and `sub` at the level 2 (highest), `mul` and `div` at 1, and `number` and parenthesized expression at 0 (lowest).
 
 
-### Solve it!
+### Solve it, but Intuitively.
 
 Right recursions are intuitive because the final abstract tree is built from top to bottom. In the example where we let $\text{add} ::= \text{number} \; \text{\color{green}{'+'}} \; \text{expr}$, when the parser enters the rule, a parent node "Add" is formed with a number as its left children. The following step is to parse with the rule `expr` and get the result as the right children. The binary tree "Add" extends itself from top to bottom with all its right branches stretching to the leaf. 
 
 Left recursions are on the contrary. In the example where we let $\text{add} ::= \text{expr} \; \text{\color{green}{'+'}} \; \text{number}$, the parser has to firstly produce the node "Add" as the starting point with a number as right children. Then the node is used to become the left node produced by the second step. The binary tree "Add" extends itself from bottom to top with all its left branches stretching to the root.
+
+
 <center>
 <img src="https://i.ibb.co/q3GLY9zt/rnl-drawio.png" width="50%" alt="rnl-drawio" border="0" />
 </center>
 
 First of all. We have to know the leaf of the tree expected to generate. Let's take the rule $\text{add} ::= \text{expr} \; \text{\color{green}{'+'}} \; \text{number}$ for example. The rule intuitively acknowledges us `number` is the "leaf rule". Then execute the parser with $\text{number} \; \text{\color{green}{'+'}} \; \text{number}$ once to get the bottommost node `Add(1, 1)`. Finally repeat the parser with $\text{\color{green}{'+'}} \; \text{number}$ until end of input or errors, and for each time a new `Add` node is created and its left child is the `Add` created at the last time. By accumulating the nodes, a left-recursive tree is built.
+
+This looks like a final solution. But how can we know the "leaf of the tree"? A heuristic approach according to the grammar we write is just to let it be the right hand rule of the operator. But still how can we know the "right hand rule of the operator"? We need still inductively conclude what is an "operator" and what is the "right hand". 
+
+For the first question. The heuristic approach is probably not true. A counterexample can be a left-recursive unary operator such like the pointer types in C "T**". Its syntax rule can be written as $A ::= A \; \text{\color{green}{'*'}} \mid T$ where $T$ is a terminal. There is no "right hand" in this rule. Hence a right hand rule *not necessarily* exists while parsing a left recursive rule.
+
+For the second question. The operator not necessarily exists as well. Think about the rule $R ::= R\;T$. The rule require a token satisfying $T$ on the right of the next token that satisfies the same rule. For all tokens ($t_0, t_1, ... , t_i$ where $i \in \N$) that satisfy $T$, the valid input text is a sequence of $t_0, t_1, ... , t_i$ without a left limit. In practice, the source text can not infinitely stretch leftwards.
