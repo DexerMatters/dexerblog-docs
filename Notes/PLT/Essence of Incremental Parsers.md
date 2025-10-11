@@ -1,6 +1,8 @@
 # Background
 Nowadays, incremental language servers, type checker and structural editor have achieved distinctive progress on improving developers' coding experience. Editors like what Hazel has made unveil the great extensibility and versatility of programming in an incremental way. This article shows an efficient approach on modern parser design with inspirations from previous work.
 
+This article describes my implementation of an incremental parser decently. It aims to be self contained with all the relevant details about the work.
+
 # Grammar
 Grammar is a set of named rules for lexers and parsers to automatically apply to the input and transform it into a structure. 
 
@@ -54,7 +56,7 @@ There must be a terminal for each left recursion
 
 
 
-### Insight 1: Refine the Grammar
+### Insight 1: Change the Semantics
 By swapping `expr` and `number` besides `'+'`, we turn the original left recursion to a right one that allows the parser takes straight forward steps without specification. 
 
 $$
@@ -85,7 +87,7 @@ $$
 
 It looks really elegant with conciseness, and yet also shows the different semantics from the initial idea. A node for addition is a sequence instead of a binary tree. The associativity is also eliminated with this approach, entrusting some stage after the parser to evaluate it with orders. However, it is appreciated to indicate the sufficient semantics in a grammar and stay transparent to any other sessions afterward.
 
-### Insight 2: Use Precedence Levels
+### Insight 2: Deal with Ambiguity
 
 From the EBNF way talked in the last session, we can notice some ideas about designing a left-recursive-descent parser. The way introduces repetition to eliminate the recursion. But what if there are two different left-recursive rules and we have to prioritize one over another one (e.t., addition over multiplication)? An explicit precedence is now required to solve the ambiguity.
 
@@ -142,4 +144,17 @@ This looks like a final solution. But how can we know the "leaf of the tree"? A 
 
 For the first question. The heuristic approach is probably not true. A counterexample can be a left-recursive unary operator such like the pointer types in C "T**". Its syntax rule can be written as $A ::= A \; \text{\color{green}{'*'}} \mid T$ where $T$ is a terminal. There is no "right hand" in this rule. Hence a right hand rule *not necessarily* exists while parsing a left recursive rule.
 
-For the second question. The operator not necessarily exists as well. Think about the rule $R ::= R\;T$. The rule require a token satisfying $T$ on the right of the next token that satisfies the same rule. For all tokens ($t_0, t_1, ... , t_i$ where $i \in \N$) that satisfy $T$, the valid input text is a sequence of $t_0, t_1, ... , t_i$ without a left limit. In practice, the source text can not infinitely stretch leftwards.
+For the second question. The operator not necessarily exists as well. Think about the rule $R ::= R\;T$. The rule requires a token to precede a token under the same rule. It means the input is an infinite sequence that starts from right and without a left limit or infix operators. 
+
+The thinking above inspires us that it is insufficient to hold a complete solution with our intuition. We need to dive in the canonical form of the recursion and find a general solution.
+
+
+### Solve it, Generally.
+
+We need to know the canonical denotation of a recursion in a grammar form.
+
+First, if you have learned *parsing expression grammar*, you can unthinkingly write down its formal definition: $G = (N, \Sigma, P, e_S)$ where $N$ is a set of non-terminals, $\Gamma$ is a set of terminals, $P$ is a function $N \to N\cup \Sigma$, which is a also called production rule or simply *rule*, and $e_S$ is the starting parsing expression. We call a set of terminals and non-terminals $N \cup \Sigma$ parsing expressions.
+
+We provide the following operations on arbitrary parsing expressions $e_1, e_2$:
+- **Sequence** $e_1 \: e_2$: it is the concatenation of the two expressions.
+- **Choice** $e_1 | e_2$: $e_2$ is ignored if $e_1$ succeeds. (Parse the first successful expression if any).
